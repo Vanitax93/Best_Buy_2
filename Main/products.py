@@ -47,19 +47,60 @@ class Product:
 
         return total_price
 
-def main():
-    bose = Product("Bose QuietComfort Earbuds", price=250, quantity=500)
-    mac = Product("MacBook Air M2", price=1450, quantity=100)
+class NonStockedProduct(Product):
+    def __init__(self, name, price):
+        super().__init__(name, price, quantity=0)  # Quantity is always 0
 
-    print(bose.buy(50))
-    print(mac.buy(100))
-    print(mac.is_active())
+    def set_quantity(self, quantity):
+        # Override to prevent quantity changes
+        pass
 
-    print(bose.show())
-    print(mac.show())
+    def buy(self, quantity):
+        if quantity <= 0:
+            raise ValueError("Purchase quantity must be positive")
+        if not self.active:
+            raise ValueError("Cannot buy inactive product")
+        # No quantity check since it's non-stocked
+        return self.price * quantity
 
-    bose.set_quantity(1000)
-    print(bose.show())
+    def show(self):
+        return f"{self.name}, Price: {self.price}, Non-Stocked (Unlimited)"
+
+
+class LimitedProduct(Product):
+    def __init__(self, name, price, quantity, maximum):
+        super().__init__(name, price, quantity)
+        self.maximum = maximum
+
+    def buy(self, quantity):
+        if quantity <= 0:
+            raise ValueError("Purchase quantity must be positive")
+        if not self.active:
+            raise ValueError("Cannot buy inactive product")
+        if quantity > self.quantity:
+            raise ValueError("Not enough quantity available")
+        if quantity > self.maximum:
+            raise ValueError(f"Cannot purchase more than {self.maximum} of {self.name} per order")
+
+        total_price = self.price * quantity
+        self.quantity -= quantity
+
+        if self.quantity == 0:
+            self.active = False
+
+        return total_price
+
+    def show(self):
+        return f"{self.name}, Price: {self.price}, Quantity: {self.quantity}, Max per order: {self.maximum}"
+
 
 if __name__ == "__main__":
-    main()
+    import store
+    product_list = [
+        Product("MacBook Air M2", price=1450, quantity=100),
+        Product("Bose QuietComfort Earbuds", price=250, quantity=500),
+        Product("Google Pixel 7", price=500, quantity=250),
+        NonStockedProduct("Windows License", price=125),
+        LimitedProduct("Shipping", price=9.99, quantity=250, maximum=1)
+    ]
+    best_buy = store.Store(product_list)
